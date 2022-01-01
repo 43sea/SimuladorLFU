@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LFU</title>
+    <style>
+        main{
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            height: 470px;
+        }
+        .campoPagina{
+            display: flex;
+            flex-direction: column;
+        }
+        .acessos{
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <table border="1px" style="border-collapse: collapse;">
+            <thead>
+                <th colspan="3">
+                    Simulação LFU
+                </th>
+            </thead>
+            <thead>
+                <th>
+                    Páginas
+                </th>
+               <th>
+                   Número de acessos
+               </th>
+               <th>
+                   inserções recentes
+               </th>
+            </thead>
+        </table>
+        <div class="campoPagina">
+            <input type="text" name="pagina" id="pagina" placeholder="Nome da página">
+            <textarea name="conteudo" id="conteudo" cols="30" rows="10" placeholder="Conteúdo da página"></textarea>
+            <input type="button" value="Adiçionar" class="add">
+        </div>
+        <div class="acessos">
+            <select name="selecione" id="selecione"></select>
+            <input type="button" value="Acessar" id="btnAcesso">
+            <div class="visualizacao"></div>
+        </div>
+    </main>
+    <script>
+        let tabela = window.document.querySelectorAll("table")
+        for(let i=0; i<3; i++){
+            tabela[0].innerHTML += `<tr><td class=paginas>x</td><td class=acessos>0</td><td class=bitss>${i}</td></tr>`
+        }
+        let vetorPagina = []
+        let vetorConteudo = []
+        let paginas = window.document.querySelectorAll(".paginas")
+        let acessos = window.document.querySelectorAll(".acessos")
+        let add = window.document.querySelectorAll(".add")
+        let paginaVirtual = window.document.querySelectorAll("#pagina")
+        let conteudo = window.document.querySelectorAll("#conteudo")
+        let selecione = window.document.querySelectorAll("#selecione")
+        let visualizacao = window.document.querySelectorAll(".visualizacao")
+        let btnAcesso = window.document.querySelectorAll("#btnAcesso")
+        let ja = false
+        let bitss = window.document.querySelectorAll(".bitss")
+        let vetorBits = []
+        let i=0
+        let varPagina =0
+        let varSelect = 1
+        let varSelect2 = 0
+        function adicionarPaginaEConteudo(pagina, conteudo) {
+            if(i<3){
+                vetorPagina[i] = pagina
+                vetorConteudo[i] = conteudo
+                atualizaPagina()
+                i++
+            }else{
+                apagaPagina()
+            }
+            
+        }
+
+        function atualizaPagina() {
+            paginas[varPagina].innerHTML = vetorPagina[varPagina]
+            varPagina++
+            atualizaSelect()
+        }
+
+        function atualizaSelect() {
+            selecione[0].innerHTML += `<option value=${varSelect} class=opt>${vetorPagina[varSelect2]}</option>`
+            varSelect++
+            varSelect2++
+        }
+        let mi=0
+        let max =0
+        let ma = 0
+        let pos = 0
+        let opt = window.document.querySelectorAll(".opt")
+        function apagaPagina() {
+            alert("Cache cheio")
+            indiceBits()
+            if(acessos[0].innerHTML==acessos[1].innerHTML && acessos[0].innerHTML==acessos[2].innerHTML && acessos[2].innerHTML==acessos[1].innerHTML){
+                maiorMenor()
+                vetorPagina[pos] = paginaVirtual[0].value
+                vetorConteudo[pos] = conteudo[0].value
+                alert(`A pagina ${paginas[pos].innerHTML} será substituidas pela pagina ${vetorPagina[pos]}`)
+                paginas[pos].innerHTML = vetorPagina[pos]
+                selecione[0].innerHTML = "0"
+                for(let i=0; i<vetorPagina.length; i++){
+                    selecione[0].innerHTML += `<option value=${(i+1)} class=opt>${vetorPagina[i]}</option>`
+                }
+                indiceBits()
+                zeraAcessos(pos)
+            }else if(acessos[0].innerHTML>acessos[1].innerHTML && acessos[0].innerHTML==acessos[2].innerHTML){
+                pos = 1
+                maiorMeno2(pos)
+                inserirPagina()
+                indiceBits()
+                zeraAcessos(pos)
+            }else if(acessos[0].innerHTML>acessos[2].innerHTML && acessos[0].innerHTML==acessos[1].innerHTML){
+                pos = 2
+                maiorMeno2(pos)
+                inserirPagina()
+                indiceBits()
+                zeraAcessos(pos)
+            }else if(acessos[0].innerHTML<acessos[2].innerHTML && acessos[2].innerHTML==acessos[1].innerHTML){
+                pos = 0
+                maiorMeno2(pos)
+                inserirPagina()
+                indiceBits()
+                zeraAcessos(pos)
+            }else if(acessos[0].innerHTML<acessos[1].innerHTML && acessos[0].innerHTML==acessos[2].innerHTML){
+                maiorMenor3(vetorBits[0], vetorBits[2])
+                inserirPagina()
+                zeraAcessos(pos)
+            }else if(acessos[0].innerHTML<acessos[2].innerHTML && acessos[0].innerHTML==acessos[1].innerHTML){
+                maiorMenor3(vetorBits[0], vetorBits[1])
+                inserirPagina()
+                zeraAcessos(pos)
+            }else if(acessos[0].innerHTML>acessos[2].innerHTML && acessos[2].innerHTML==acessos[1].innerHTML){
+                maiorMenor3(vetorBits[1], vetorBits[2])
+                inserirPagina()
+                zeraAcessos(pos)
+            }else{
+                menorAcesso(acessos[0].innerHTML, acessos[1].innerHTML, acessos[2].innerHTML)
+                inserirPagina()
+                zeraAcessos(pos)
+            }
+        }
+        function visualizarPagina(n) {
+            visualizacao[0].innerHTML = `Nome: ${vetorPagina[n]}<br><br>Conteudo: ${vetorConteudo[n]}`
+            let c = Number(acessos[n].innerHTML)
+            console.log(++c)
+            acessos[n].innerHTML = c++;
+        }
+        function indiceBits() {
+            for(let i=0; i<bitss.length; i++){
+                vetorBits[i] = bitss[i].innerHTML
+            }
+            for(let i=0; i<bitss.length; i++){
+                bitss[i].innerHTML = vetorBits[i]
+            }
+        }
+        function inserirPagina() {
+            vetorPagina[pos] = paginaVirtual[0].value
+            vetorConteudo[pos] = conteudo[0].value
+            alert(`A pagina ${paginas[pos].innerHTML} será substituidas pela pagina ${vetorPagina[pos]}`)
+            paginas[pos].innerHTML = vetorPagina[pos]
+            selecione[0].innerHTML = "0"
+            for(let i=0; i<vetorPagina.length; i++){
+                selecione[0].innerHTML += `<option value=${(i+1)} class=opt>${vetorPagina[i]}</option>`
+            }
+        }
+        function maiorMenor() {
+            ma = Math.max(vetorBits[0], vetorBits[1], vetorBits[2])
+            max = Number(ma)+1
+            mi = Math.min(vetorBits[0], vetorBits[1], vetorBits[2])
+            pos = vetorBits.indexOf(String(mi))
+            bitss[pos].innerHTML = max
+        }
+        function maiorMenor3(n1, n2) {
+            ma = Math.max(n1, n2)
+            max = Number(ma)+1
+            mi = Math.min(n1, n2)
+            pos = vetorBits.indexOf(String(mi))
+            bitss[pos].innerHTML = max
+        }
+        function maiorMeno2(n) {
+            ma = Math.max(vetorBits[0], vetorBits[1], vetorBits[2])
+            max = Number(ma)+1
+            mi = Math.min(vetorBits[0], vetorBits[1], vetorBits[2])
+            bitss[n].innerHTML = max
+        }
+        function menorAcesso(p0, p1, p2) {
+            let n1 = Number(p0)
+            let n2 = Number(p1)
+            let n3 = Number(p2)
+            mi = Math.min(n1, n2, n3)
+            ma = Math.max(vetorBits[0], vetorBits[1], vetorBits[2])
+            max = Number(ma)+1
+            let vAcessos = []
+            for(let i=0; i<acessos.length; i++){
+                vAcessos[i] = acessos[i].innerHTML
+            }
+            pos = vAcessos.indexOf(String(mi))
+            bitss[pos].innerHTML = max
+            
+        }
+        function zeraAcessos(n){
+            acessos[n].innerHTML = "0"
+        }
+        btnAcesso[0].addEventListener("click", ()=>{
+            if(ja){
+                visualizarPagina((selecione[0].value-1))
+            }else{
+                alert("Sem páginas")
+            }
+        })
+        add[0].addEventListener("click", ()=>{
+            ja = true
+            adicionarPaginaEConteudo(paginaVirtual[0].value, conteudo[0].value)            
+        })
+    </script>
+</body>
+</html>
